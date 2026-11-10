@@ -22,6 +22,10 @@ import (
 const (
 	probeTimeout    = 5 * time.Second
 	probeCandidates = 10
+	// DefaultMTU preserves the value used before warp.mtu was configurable.
+	DefaultMTU = 1280
+	MinMTU     = 1000
+	MaxMTU     = 1420
 )
 
 type Stack string
@@ -63,6 +67,7 @@ type exit struct {
 	id        string
 	egress    netip.Addr
 	stack     Stack
+	mtu       int
 	device    *device.Device
 	network   *netstack.Net
 	mu        sync.Mutex
@@ -74,17 +79,23 @@ type exit struct {
 }
 
 func newExit(ctx context.Context, reg registration) (*exit, error) {
-	return newExitWithStack(ctx, reg, DefaultStack, netip.Addr{})
+	return newExitWithStack(ctx, reg, DefaultStack, netip.Addr{}, DefaultMTU)
 }
 
 // newExitWithStack builds one userspace tunnel for reg. A valid source pins
 // the outer WireGuard socket to that address and restricts the peer endpoints
 // to IPv6, so the public egress is derived from the rotating source rather than
 // from whatever address the host happens to share.
-func newExitWithStack(ctx context.Context, reg registration, stack Stack, source netip.Addr) (*exit, error) {
+func newExitWithStack(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu int) (*exit, error) {
 	normalized, err := ParseStack(string(stack))
 	if err != nil {
 		return nil, err
+	}
+	if mtu == 0 {
+		mtu = DefaultMTU
+	}
+	if mtu < MinMTU || mtu > MaxMTU {
+		return nil, fmt.Errorf("WARP tunnel MTU must be between %d and %d, got %d", MinMTU, MaxMTU, mtu)
 	}
 	stack = normalized
 	localV6, v6Err := parseAddress(reg.AddressV6)
@@ -116,7 +127,7 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 		}
 		dns = []netip.Addr{dnsV4, dnsV6}
 	}
-	tunDevice, network, err := netstack.CreateNetTUN(localAddresses, dns, 1280)
+	tunDevice, network, err := netstack.CreateNetTUN(localAddresses, dns, mtu)
 	if err != nil {
 		return nil, fmt.Errorf("create WARP network stack: %w", err)
 	}
@@ -157,7 +168,7 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 		<-wg.Wait()
 		return nil, fmt.Errorf("start WARP device: %w", err)
 	}
-	e := &exit{id: reg.ID, stack: stack, device: wg, network: network}
+	e := &exit{id: reg.ID, stack: stack, mtu: mtu, device: wg, network: network}
 	egress, err := e.probe(ctx, wg, peerKey, endpoints)
 	if err != nil {
 		e.close()
@@ -304,7 +315,7 @@ func (e *exit) probe(ctx context.Context, wg *device.Device, peerKey string, end
 			lastErr = err
 		}
 	}
-	return netip.Addr{}, fmt.Errorf("verify WARP %s egress: %w", e.stack, lastErr)
+	return netip.Addr{}, fmt.Errorf("verify WARP %s egress (tunnel MTU %d; reduce warp.mtu on networks with a reduced path MTU): %w", e.stack, e.mtu, lastErr)
 }
 
 func (e *exit) probeTarget(ctx context.Context, target probeTarget) (netip.Addr, error) {

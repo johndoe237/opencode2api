@@ -77,6 +77,9 @@ type WarpConfig struct {
 	Enabled  bool   `json:"enabled"`
 	PoolSize int    `json:"pool_size,omitempty"`
 	Stack    string `json:"stack,omitempty"`
+	// MTU is the userspace tunnel MTU. Zero keeps the historical 1280-byte
+	// default, so configurations written before this field remain unchanged.
+	MTU int `json:"mtu,omitempty"`
 	// SourceIPv6 is an outer IPv6 prefix (usually a routed /64) each WARP exit
 	// binds its WireGuard socket to. Rotating the source is what gives a
 	// replacement exit a new public egress; without it, exits share one
@@ -88,6 +91,12 @@ type WarpConfig struct {
 func (w *WarpConfig) Normalize() error {
 	if w.PoolSize == 0 {
 		w.PoolSize = 2
+	}
+	if w.MTU == 0 {
+		w.MTU = warp.DefaultMTU
+	}
+	if w.MTU < warp.MinMTU || w.MTU > warp.MaxMTU {
+		return fmt.Errorf("warp.mtu must be between %d and %d", warp.MinMTU, warp.MaxMTU)
 	}
 	if strings.TrimSpace(w.Stack) == "" {
 		w.Stack = string(warp.DefaultStack)
@@ -296,7 +305,7 @@ func Load(path string) (Config, error) {
 	}
 	cfg := Config{
 		Listen:      "127.0.0.1:8080",
-		Warp:        WarpConfig{PoolSize: 2, Stack: string(warp.DefaultStack)},
+		Warp:        WarpConfig{PoolSize: 2, Stack: string(warp.DefaultStack), MTU: warp.DefaultMTU},
 		Upstream:    UpstreamConfig{Zen: "https://opencode.ai/zen", Go: "https://opencode.ai/zen/go", Anonymous: "https://opencode.ai/inference"},
 		Retry:       RetryConfig{MaxAttempts: 3, TimeoutSeconds: 300},
 		Models:      ModelsConfig{RefreshSeconds: 300, Protocols: map[string]string{}},

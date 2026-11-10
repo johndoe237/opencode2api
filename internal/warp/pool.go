@@ -142,6 +142,8 @@ type Options struct {
 	// Stack selects the address family inside the tunnel. An IPv6 stack makes
 	// the public egress an IPv6 address.
 	Stack Stack
+	// MTU is the userspace tunnel MTU. Zero selects DefaultMTU.
+	MTU int
 	// SourceIPv6, when valid, is the outer IPv6 prefix each exit binds its
 	// WireGuard socket to. Every exit draws its own address from it, so a
 	// replacement reaches Cloudflare from a new source and receives a new
@@ -158,6 +160,12 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 	}
 	if opts.SourceIPv6.IsValid() && (!opts.SourceIPv6.Addr().Is6() || opts.SourceIPv6.Bits() > 64) {
 		return nil, fmt.Errorf("WARP outer source must be an IPv6 prefix of /64 or shorter, got %s", opts.SourceIPv6)
+	}
+	if opts.MTU == 0 {
+		opts.MTU = DefaultMTU
+	}
+	if opts.MTU < MinMTU || opts.MTU > MaxMTU {
+		return nil, fmt.Errorf("WARP tunnel MTU must be between %d and %d, got %d", MinMTU, MaxMTU, opts.MTU)
 	}
 	size := opts.Size
 	if size <= 0 {
@@ -176,7 +184,7 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 				return nil, err
 			}
 		}
-		return newExitWithStack(ctx, reg, normalized, source)
+		return newExitWithStack(ctx, reg, normalized, source, opts.MTU)
 	})
 	if err != nil {
 		return nil, err

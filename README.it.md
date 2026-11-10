@@ -303,6 +303,7 @@ Consulta [config.example.json](config.example.json) per una configurazione inizi
 | `warp.enabled`              | `false`; il traffico dei canali gratuiti esce via Cloudflare WARP, senza proxy. |
 | `warp.pool_size`            | `2`; limite massimo di uscite WARP (metà pre-registrata in background; il ring attivo segue la concorrenza), 1–32. |
 | `warp.stack`                | `ipv6`; `ipv6`, `ipv4` o `dual`.                                              |
+| `warp.mtu`                  | `1280`; MTU del tunnel, intervallo 1000–1420. Prova `1200` su reti con MTU di percorso ridotto come Railway; valori inferiori aumentano l'overhead e possono ridurre il throughput. |
 | `warp.source_ipv6`          | vuoto; prefisso IPv6 (`/64`) da cui ogni uscita associa la sorgente esterna; richiede `stack = "ipv6"`. |
 | `prefer`                    | `go`; accetta `go` o `zen`.                                                   |
 | `upstream.zen`              | `https://opencode.ai/inference/openai`.                                       |

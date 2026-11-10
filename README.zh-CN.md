@@ -305,6 +305,7 @@ Key 初始化时均衡分配到代理。真实流量可以触发代理检查、K
 | `warp.enabled`              | `false`；免费通道流量通过 Cloudflare WARP 出口，不使用代理。                          |
 | `warp.pool_size`            | `2`；WARP 出口上限（后台预注册一半，活跃出口按并发调整），1–32。                    |
 | `warp.stack`                | `ipv6`；可选 `ipv6`、`ipv4`、`dual`。                                                 |
+| `warp.mtu`                  | `1280`；隧道 MTU，范围 1000–1420。Railway 等路径 MTU 较小的网络可尝试 `1200`；过低会增加开销并降低吞吐。 |
 | `warp.source_ipv6`          | 空；每个出口绑定的外层 IPv6 源前缀（`/64`），要求 `stack = "ipv6"`。                  |
 | `prefer`                    | `go`；可选 `go`、`zen`。                                                              |
 | `upstream.zen`              | `https://opencode.ai/zen`。                                                           |

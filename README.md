@@ -305,6 +305,7 @@ See [config.example.json](config.example.json) for a complete starting configura
 | `warp.enabled`              | `false`; free-lane traffic leaves through Cloudflare WARP and no proxy.    |
 | `warp.pool_size`            | `2`; upper bound on WARP exits (half pre-registered in the background; the active ring follows concurrency), 1–32. |
 | `warp.stack`                | `ipv6`; `ipv6`, `ipv4`, or `dual`.                                          |
+| `warp.mtu`                  | `1280`; tunnel MTU, valid range 1000–1420. Try `1200` on reduced-path-MTU networks such as Railway; lower values add overhead and can reduce throughput. |
 | `warp.source_ipv6`          | empty; IPv6 prefix (`/64`) each exit binds its outer source from; requires `stack = "ipv6"`. |
 | `prefer`                    | `go`; accepts `go` or `zen`.                                                |
 | `upstream.zen`              | `https://opencode.ai/zen`.                                                  |

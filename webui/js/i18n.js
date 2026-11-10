@@ -282,6 +282,8 @@ const DICTIONARY = {
         "An upper bound, not a fixed count: after the first exit is ready, half of it (at least one) is pre-registered in the background as warm capacity; the active ring then follows concurrency (one exit per in-flight request plus a spare) and shrinks after 60 idle seconds.",
       "config.warp.stack": "Network stack",
       "config.warp.stack.dual": "Dual stack",
+      "config.warp.mtu": "WARP tunnel MTU",
+      "config.warp.mtu.hint": "Default 1280. Try 1200 on reduced-path-MTU networks such as Railway; valid range: 1000–1420.",
       "config.warp.source": "Outer IPv6 source prefix (/64)",
       "config.warp.source.hint":
         "Used only with the IPv6 network stack. Every WARP exit binds one source address from this prefix, so replacing an exit also replaces its public egress; leave empty to share this host's default source address.",
@@ -859,6 +861,8 @@ const DICTIONARY = {
         "Là giới hạn trên, không phải số cố định: sau khi đầu ra đầu tiên sẵn sàng, một nửa (ít nhất một) được đăng ký trước ở nền; vòng hoạt động sau đó thay đổi theo mức đồng thời (mỗi yêu cầu đang chạy một đầu ra, cộng một đầu ra dự phòng) và thu gọn sau 60 giây nhàn rỗi.",
       "config.warp.stack": "Ngăn xếp mạng",
       "config.warp.stack.dual": "Hai ngăn xếp",
+      "config.warp.mtu": "MTU đường hầm WARP",
+      "config.warp.mtu.hint": "Mặc định 1280. Thử 1200 trên mạng có MTU đường đi nhỏ như Railway; phạm vi hợp lệ: 1000–1420.",
       "config.warp.source": "Tiền tố nguồn IPv6 bên ngoài (/64)",
       "config.warp.source.hint":
         "Chỉ dùng với ngăn xếp mạng IPv6. Mỗi đầu ra WARP gắn một địa chỉ nguồn trong tiền tố này, nên khi thay đầu ra là thay luôn địa chỉ công cộng; để trống sẽ dùng địa chỉ nguồn mặc định của máy chủ.",
@@ -1447,6 +1451,8 @@ const DICTIONARY = {
         "È un limite massimo, non un numero fisso: dopo la prima uscita, metà del valore (almeno una) viene pre-registrata in background; il ring attivo segue poi la concorrenza (un'uscita per richiesta in corso più una di riserva) e si riduce dopo 60 secondi di inattività.",
       "config.warp.stack": "Stack di rete",
       "config.warp.stack.dual": "Doppio stack",
+      "config.warp.mtu": "MTU del tunnel WARP",
+      "config.warp.mtu.hint": "Predefinito 1280. Prova 1200 su reti con MTU di percorso ridotto come Railway; intervallo valido: 1000–1420.",
       "config.warp.source": "Prefisso sorgente IPv6 esterno (/64)",
       "config.warp.source.hint":
         "Usato solo con lo stack IPv6. Ogni uscita WARP associa un indirizzo sorgente da questo prefisso, quindi sostituire un'uscita sostituisce anche l'indirizzo pubblico; lascia vuoto per usare l'indirizzo sorgente predefinito dell'host.",

@@ -946,6 +946,13 @@
                         <option value="dual" data-i18n="config.warp.stack.dual">双栈</option>
                       </select>
                     </div>
+                    <div class="field">
+                      <label for="c-warp-mtu" data-i18n="config.warp.mtu">WARP 隧道 MTU</label>
+                      <input id="c-warp-mtu" type="number" min="1000" max="1420" step="1" />
+                      <p class="section-caption" data-i18n="config.warp.mtu.hint">
+                        默认 1280；Railway 等路径 MTU 较小的网络可尝试 1200。
+                      </p>
+                    </div>
                     <div class="field full">
                       <label for="c-warp-source" data-i18n="config.warp.source">外层 IPv6 源前缀（/64）</label>
                       <input id="c-warp-source" placeholder="2001:db8:1::/64" />
