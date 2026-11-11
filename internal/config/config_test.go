@@ -46,6 +46,21 @@ func TestWarpConfigNormalizeRejectsInvalidDiagnosticOptions(t *testing.T) {
 	}
 }
 
+func TestWarpConfigNormalizeTCPMSS(t *testing.T) {
+	for _, mss := range []int{0, warp.MinTCPMSS, 1160, warp.MaxTCPMSS} {
+		cfg := WarpConfig{TCPMSS: mss}
+		if err := cfg.Normalize(); err != nil {
+			t.Fatalf("Normalize() rejected tcp_mss %d: %v", mss, err)
+		}
+	}
+	for _, mss := range []int{warp.MinTCPMSS - 1, warp.MaxTCPMSS + 1} {
+		cfg := WarpConfig{TCPMSS: mss}
+		if err := cfg.Normalize(); err == nil {
+			t.Fatalf("Normalize() accepted tcp_mss %d", mss)
+		}
+	}
+}
+
 func TestWarpConfigNormalizeRejectsMTUOutsideBounds(t *testing.T) {
 	for _, mtu := range []int{warp.MinMTU - 1, warp.MaxMTU + 1} {
 		t.Run(string(rune(mtu)), func(t *testing.T) {
@@ -89,6 +104,7 @@ func TestWarpMTURoundTrip(t *testing.T) {
 		t.Fatalf("initial Load() error = %v", err)
 	}
 	cfg.Warp.MTU = 1200
+	cfg.Warp.TCPMSS = 1160
 	if err := SaveAtomic(path, cfg); err != nil {
 		t.Fatalf("SaveAtomic() error = %v", err)
 	}
@@ -98,5 +114,8 @@ func TestWarpMTURoundTrip(t *testing.T) {
 	}
 	if reloaded.Warp.MTU != 1200 {
 		t.Fatalf("round-trip MTU = %d, want 1200", reloaded.Warp.MTU)
+	}
+	if reloaded.Warp.TCPMSS != 1160 {
+		t.Fatalf("round-trip tcp_mss = %d, want 1160", reloaded.Warp.TCPMSS)
 	}
 }

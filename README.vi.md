@@ -310,6 +310,7 @@ Xem [config.example.json](config.example.json) để có một cấu hình khở
 | `warp.pool_size`           | `2`; giới hạn trên số đầu ra WARP (một nửa đăng ký trước ở nền; vòng hoạt động theo mức đồng thời), 1–32. |
 | `warp.stack`               | `ipv6`; `ipv6`, `ipv4` hoặc `dual`.                              |
 | `warp.mtu`                 | `1280`; MTU đường hầm, phạm vi 1000–1420. Thử `1200` trên mạng có MTU đường đi nhỏ như Railway; giá trị thấp hơn tăng overhead và có thể giảm thông lượng. |
+| `warp.tcp_mss`             | `0`; tắt theo mặc định để tương thích. Khi MTU đường đi nhỏ, giới hạn MSS SYN/SYN-ACK trong 536–1460, ví dụ `1160`. |
 | `warp.endpoint_port`       | `0`; dùng cổng endpoint do Cloudflare trả về (thường là 2408), hoặc ép cổng UDP từ 1–65535. |
 | `warp.init_timeout_seconds`| `0`; giữ chiến lược timeout theo cửa sổ đăng ký cũ, hoặc đặt timeout khởi tạo tối đa 900 giây. |
 | `warp.source_ipv6`         | rỗng; tiền tố IPv6 (`/64`) mỗi đầu ra bind nguồn bên ngoài; cần `stack = "ipv6"`. |

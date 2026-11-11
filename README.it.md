@@ -304,6 +304,7 @@ Consulta [config.example.json](config.example.json) per una configurazione inizi
 | `warp.pool_size`            | `2`; limite massimo di uscite WARP (metà pre-registrata in background; il ring attivo segue la concorrenza), 1–32. |
 | `warp.stack`                | `ipv6`; `ipv6`, `ipv4` o `dual`.                                              |
 | `warp.mtu`                  | `1280`; MTU del tunnel, intervallo 1000–1420. Prova `1200` su reti con MTU di percorso ridotto come Railway; valori inferiori aumentano l'overhead e possono ridurre il throughput. |
+| `warp.tcp_mss`              | `0`; disabilitato per compatibilità. Su percorsi con MTU ridotto limita l'MSS SYN/SYN-ACK a 536–1460, ad esempio `1160`. |
 | `warp.endpoint_port`        | `0`; usa la porta restituita da Cloudflare (di solito 2408), oppure forza una porta UDP da 1 a 65535. |
 | `warp.init_timeout_seconds` | `0`; conserva il timeout storico basato sulla finestra di registrazione, oppure imposta un timeout esplicito fino a 900 secondi. |
 | `warp.source_ipv6`          | vuoto; prefisso IPv6 (`/64`) da cui ogni uscita associa la sorgente esterna; richiede `stack = "ipv6"`. |

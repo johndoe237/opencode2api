@@ -228,7 +228,7 @@ func (m *RuntimeController) selectWARP(cfg config.Config) (*warp.Pool, string, b
 	if !cfg.Warp.Enabled {
 		return nil, "", false, nil
 	}
-	key := fmt.Sprintf("%d|%s|%d|%d|%d|%s", cfg.Warp.PoolSize, cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.EndpointPort, cfg.Warp.InitTimeoutSeconds, cfg.Warp.SourceIPv6)
+	key := fmt.Sprintf("%d|%s|%d|%d|%d|%d|%s", cfg.Warp.PoolSize, cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.EndpointPort, cfg.Warp.InitTimeoutSeconds, cfg.Warp.TCPMSS, cfg.Warp.SourceIPv6)
 	if m.warpPool != nil && m.warpKey == key {
 		return m.warpPool, key, false, nil
 	}
@@ -256,7 +256,7 @@ func (m *RuntimeController) selectWARP(cfg config.Config) (*warp.Pool, string, b
 	}
 	ctx, cancel := context.WithTimeout(m.root, timeout)
 	defer cancel()
-	pool, err := warp.NewWithOptions(ctx, m.logger, warp.Options{Size: cfg.Warp.PoolSize, Stack: warp.Stack(cfg.Warp.Stack), MTU: cfg.Warp.MTU, EndpointPort: cfg.Warp.EndpointPort, SourceIPv6: source})
+	pool, err := warp.NewWithOptions(ctx, m.logger, warp.Options{Size: cfg.Warp.PoolSize, Stack: warp.Stack(cfg.Warp.Stack), MTU: cfg.Warp.MTU, TCPMSS: cfg.Warp.TCPMSS, EndpointPort: cfg.Warp.EndpointPort, SourceIPv6: source})
 	if err != nil {
 		return nil, "", false, fmt.Errorf("initialize WARP egress: %w", err)
 	}

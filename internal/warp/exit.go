@@ -79,7 +79,7 @@ type exit struct {
 }
 
 func newExit(ctx context.Context, reg registration) (*exit, error) {
-	return newExitWithStackAndOptions(ctx, reg, DefaultStack, netip.Addr{}, DefaultMTU, 0, true)
+	return newExitWithStackAndOptions(ctx, reg, DefaultStack, netip.Addr{}, DefaultMTU, 0, 0, true)
 }
 
 // newExitWithStack builds one userspace tunnel for reg. A valid source pins
@@ -87,14 +87,14 @@ func newExit(ctx context.Context, reg registration) (*exit, error) {
 // to IPv6, so the public egress is derived from the rotating source rather than
 // from whatever address the host happens to share.
 func newExitWithStack(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu int) (*exit, error) {
-	return newExitWithStackAndOptions(ctx, reg, stack, source, mtu, 0, true)
+	return newExitWithStackAndOptions(ctx, reg, stack, source, mtu, 0, 0, true)
 }
 
-func newExitWithStackAndOptions(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort int, verify bool) (*exit, error) {
-	return newExitWithStackAndLogger(ctx, reg, stack, source, mtu, endpointPort, verify, nil)
+func newExitWithStackAndOptions(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort, tcpMSS int, verify bool) (*exit, error) {
+	return newExitWithStackAndLogger(ctx, reg, stack, source, mtu, endpointPort, tcpMSS, verify, nil)
 }
 
-func newExitWithStackAndLogger(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort int, verify bool, logger *device.Logger) (*exit, error) {
+func newExitWithStackAndLogger(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort, tcpMSS int, verify bool, logger *device.Logger) (*exit, error) {
 	normalized, err := ParseStack(string(stack))
 	if err != nil {
 		return nil, err
@@ -107,6 +107,9 @@ func newExitWithStackAndLogger(ctx context.Context, reg registration, stack Stac
 	}
 	if endpointPort < 0 || endpointPort > 65535 {
 		return nil, fmt.Errorf("WARP endpoint port must be between 0 and 65535, got %d", endpointPort)
+	}
+	if tcpMSS != 0 && (tcpMSS < MinTCPMSS || tcpMSS > MaxTCPMSS) {
+		return nil, fmt.Errorf("WARP TCP MSS must be 0 or between %d and %d, got %d", MinTCPMSS, MaxTCPMSS, tcpMSS)
 	}
 	stack = normalized
 	localV6, v6Err := parseAddress(reg.AddressV6)
@@ -141,6 +144,9 @@ func newExitWithStackAndLogger(ctx context.Context, reg registration, stack Stac
 	tunDevice, network, err := netstack.CreateNetTUN(localAddresses, dns, mtu)
 	if err != nil {
 		return nil, fmt.Errorf("create WARP network stack: %w", err)
+	}
+	if tcpMSS != 0 {
+		tunDevice = newMSSClampDevice(tunDevice, tcpMSS)
 	}
 	privateKey, err := uapiKey(reg.PrivateKey)
 	if err != nil {

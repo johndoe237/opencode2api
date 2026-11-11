@@ -144,6 +144,8 @@ type Options struct {
 	Stack Stack
 	// MTU is the userspace tunnel MTU. Zero selects DefaultMTU.
 	MTU int
+	// TCPMSS caps TCP SYN/SYN-ACK MSS options. Zero disables the clamp.
+	TCPMSS int
 	// EndpointPort overrides the port on every resolved endpoint. Zero keeps
 	// the endpoint ports returned by Cloudflare and the existing fallbacks.
 	EndpointPort int
@@ -173,6 +175,9 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 	if opts.EndpointPort < 0 || opts.EndpointPort > 65535 {
 		return nil, fmt.Errorf("WARP endpoint port must be between 0 and 65535, got %d", opts.EndpointPort)
 	}
+	if opts.TCPMSS != 0 && (opts.TCPMSS < MinTCPMSS || opts.TCPMSS > MaxTCPMSS) {
+		return nil, fmt.Errorf("WARP TCP MSS must be 0 or between %d and %d, got %d", MinTCPMSS, MaxTCPMSS, opts.TCPMSS)
+	}
 	size := opts.Size
 	if size <= 0 {
 		size = DefaultPoolSize
@@ -190,7 +195,7 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 				return nil, err
 			}
 		}
-		return newExitWithStackAndOptions(ctx, reg, normalized, source, opts.MTU, opts.EndpointPort, true)
+		return newExitWithStackAndOptions(ctx, reg, normalized, source, opts.MTU, opts.EndpointPort, opts.TCPMSS, true)
 	})
 	if err != nil {
 		return nil, err

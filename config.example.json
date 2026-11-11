@@ -9,6 +9,7 @@
     "pool_size": 2,
     "stack": "ipv6",
     "mtu": 1280,
+    "tcp_mss": 0,
     "endpoint_port": 0,
     "init_timeout_seconds": 0,
     "source_ipv6": ""

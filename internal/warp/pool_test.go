@@ -22,3 +22,12 @@ func TestNewWithOptionsRejectsInvalidEndpointPortBeforeRegistration(t *testing.T
 		}
 	}
 }
+
+func TestNewWithOptionsRejectsInvalidTCPMSSBeforeRegistration(t *testing.T) {
+	for _, mss := range []int{MinTCPMSS - 1, MaxTCPMSS + 1} {
+		_, err := NewWithOptions(context.Background(), nil, Options{TCPMSS: mss})
+		if err == nil {
+			t.Fatalf("NewWithOptions() accepted tcp_mss %d", mss)
+		}
+	}
+}

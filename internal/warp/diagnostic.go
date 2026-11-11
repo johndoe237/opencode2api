@@ -67,14 +67,14 @@ type DiagnosticTunnel struct {
 
 // NewDiagnosticTunnel builds the same tunnel as the application, but lets the
 // caller run individual checks instead of collapsing them into one probe.
-func NewDiagnosticTunnel(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, endpointPort int, family string) (*DiagnosticTunnel, error) {
+func NewDiagnosticTunnel(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, tcpMSS, endpointPort int, family string) (*DiagnosticTunnel, error) {
 	reg := registration.registration
 	reg.Endpoints = filterEndpointFamily(reg.Endpoints, family)
 	if len(reg.Endpoints) == 0 {
 		return nil, fmt.Errorf("no %s endpoint in registration", family)
 	}
 	reg.Endpoint = reg.Endpoints[0]
-	e, err := newExitWithStackAndOptions(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, false)
+	e, err := newExitWithStackAndOptions(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, tcpMSS, false)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func NewDiagnosticTunnel(ctx context.Context, registration DiagnosticRegistratio
 
 // VerifyDiagnostic executes the same exit construction and Cloudflare Trace
 // probe used by the application while reusing the supplied single account.
-func VerifyDiagnostic(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, endpointPort int, family string) (time.Duration, string, error) {
+func VerifyDiagnostic(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, tcpMSS, endpointPort int, family string) (time.Duration, string, error) {
 	start := time.Now()
 	var logMu sync.Mutex
 	var logs []string
@@ -105,7 +105,7 @@ func VerifyDiagnostic(ctx context.Context, registration DiagnosticRegistration, 
 		return time.Since(start), strings.Join(logs, " | "), fmt.Errorf("no %s endpoint in registration", family)
 	}
 	reg.Endpoint = reg.Endpoints[0]
-	e, err := newExitWithStackAndLogger(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, true, logger)
+	e, err := newExitWithStackAndLogger(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, tcpMSS, true, logger)
 	if err != nil {
 		return time.Since(start), strings.Join(logs, " | "), err
 	}
@@ -171,6 +171,17 @@ func (t *DiagnosticTunnel) Handshake(ctx context.Context) (HandshakeStats, time.
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+}
+
+// Stats reads the current redacted WireGuard counters after probes complete.
+func (t *DiagnosticTunnel) Stats() (HandshakeStats, error) {
+	raw, err := t.exit.device.IpcGet()
+	if err != nil {
+		return HandshakeStats{}, err
+	}
+	stats := parseHandshakeStats(raw)
+	stats.Raw = raw
+	return stats, nil
 }
 
 func parseHandshakeStats(raw string) HandshakeStats {

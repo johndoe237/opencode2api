@@ -306,6 +306,7 @@ Key 初始化时均衡分配到代理。真实流量可以触发代理检查、K
 | `warp.pool_size`            | `2`；WARP 出口上限（后台预注册一半，活跃出口按并发调整），1–32。                    |
 | `warp.stack`                | `ipv6`；可选 `ipv6`、`ipv4`、`dual`。                                                 |
 | `warp.mtu`                  | `1280`；隧道 MTU，范围 1000–1420。Railway 等路径 MTU 较小的网络可尝试 `1200`；过低会增加开销并降低吞吐。 |
+| `warp.tcp_mss`              | `0`；默认关闭以保持兼容。路径 MTU 较小时可将 TCP SYN/SYN-ACK 的 MSS 限制为 536–1460，例如 `1160`。 |
 | `warp.endpoint_port`        | `0`；使用 Cloudflare 返回的端口（通常为 2408），或强制使用 1–65535 的 UDP 端口。 |
 | `warp.init_timeout_seconds` | `0`；保持历史注册窗口超时策略，或设置不超过 900 秒的显式初始化超时。 |
 | `warp.source_ipv6`          | 空；每个出口绑定的外层 IPv6 源前缀（`/64`），要求 `stack = "ipv6"`。                  |

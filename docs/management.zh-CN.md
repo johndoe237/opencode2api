@@ -29,7 +29,7 @@
 
 ## WARP 免费模型出口
 
-WebUI「Proxy 节点」页底部新增 WARP 开关，对应配置 `warp.enabled`（默认关闭）、`warp.pool_size`（1–32，默认 2；出口数量上限，活跃出口按并发动态调整）、`warp.stack`（默认 `ipv6`，可选 `ipv4` 或 `dual`）、`warp.mtu`（默认 `1280`，范围 1000–1420）、`warp.endpoint_port`（默认 `0`，使用 Cloudflare 返回的端口）和 `warp.init_timeout_seconds`（默认 `0`，保持历史注册窗口策略，最大 900 秒），以及 `warp.source_ipv6`（外层 IPv6 源前缀，需配合 `stack = "ipv6"`）。Railway 等路径 MTU 较小的网络可尝试 `warp.mtu: 1200`；更低的 MTU 会增加开销并可能降低吞吐。开启后，匿名通道、免费模型的 Zen Key 回退、免费模型可用性探测和匿名模型目录刷新都通过用户态 Cloudflare WARP 出网，不再使用任何代理；Go 套餐 Key 与付费模型保持原有代理绑定。
+WebUI「Proxy 节点」页底部新增 WARP 开关，对应配置 `warp.enabled`（默认关闭）、`warp.pool_size`（1–32，默认 2；出口数量上限，活跃出口按并发动态调整）、`warp.stack`（默认 `ipv6`，可选 `ipv4` 或 `dual`）、`warp.mtu`（默认 `1280`，范围 1000–1420）、`warp.tcp_mss`（默认 `0`，可选 536–1460）、`warp.endpoint_port`（默认 `0`，使用 Cloudflare 返回的端口）和 `warp.init_timeout_seconds`（默认 `0`，保持历史注册窗口策略，最大 900 秒），以及 `warp.source_ipv6`（外层 IPv6 源前缀，需配合 `stack = "ipv6"`）。Railway 等路径 MTU 较小的网络可尝试 `warp.mtu: 1280` 与 `warp.tcp_mss: 1160`；更低的 MTU 会增加开销并可能降低吞吐。开启后，匿名通道、免费模型的 Zen Key 回退、免费模型可用性探测和匿名模型目录刷新都通过用户态 Cloudflare WARP 出网，不再使用任何代理；Go 套餐 Key 与付费模型保持原有代理绑定。
 
 - 主机或容器必须能向 Cloudflare 端点发送 UDP（端口 `2408`）；不需要 TUN 设备、root、`NET_ADMIN` 或修改路由表。
 - 出口第一次收到上游 429/403 即被淘汰并立刻在后台重新注册；免费模型请求会持续切换到其他出口，用完 `retry.max_attempts` 次后才把最后一个 429 返回客户端。活跃出口数按并发动态调整（每个在途请求一个，另留一个备用，上限为 `warp.pool_size`），空闲 60 秒的多余出口自动回收。免费额度按出口网段计算：IPv6 出口按 `/64`、IPv4 出口按 `/32` 去重并冷却 30 分钟。Cloudflare WARP 的共享 IPv4 出口通常已被用尽，`warp.stack` 默认 `ipv6`，配合 `warp.source_ipv6`（路由到本机的 `/64`，Linux 下通过 `IPV6_FREEBIND` 绑定）让每个出口使用独立源地址时，替换出口才会获得新的公网地址。

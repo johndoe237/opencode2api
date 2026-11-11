@@ -86,6 +86,9 @@ type WarpConfig struct {
 	// InitTimeoutSeconds bounds WARP initialization. Zero preserves the
 	// historical registration-window-derived timeout.
 	InitTimeoutSeconds int `json:"init_timeout_seconds,omitempty"`
+	// TCPMSS caps MSS options on TCP SYN/SYN-ACK packets crossing the tunnel.
+	// Zero preserves the historical behavior.
+	TCPMSS int `json:"tcp_mss,omitempty"`
 	// SourceIPv6 is an outer IPv6 prefix (usually a routed /64) each WARP exit
 	// binds its WireGuard socket to. Rotating the source is what gives a
 	// replacement exit a new public egress; without it, exits share one
@@ -109,6 +112,9 @@ func (w *WarpConfig) Normalize() error {
 	}
 	if w.InitTimeoutSeconds < 0 || w.InitTimeoutSeconds > 900 {
 		return errors.New("warp.init_timeout_seconds must be between 0 and 900")
+	}
+	if w.TCPMSS != 0 && (w.TCPMSS < warp.MinTCPMSS || w.TCPMSS > warp.MaxTCPMSS) {
+		return fmt.Errorf("warp.tcp_mss must be 0 or between %d and %d", warp.MinTCPMSS, warp.MaxTCPMSS)
 	}
 	if strings.TrimSpace(w.Stack) == "" {
 		w.Stack = string(warp.DefaultStack)

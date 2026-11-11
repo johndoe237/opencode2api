@@ -954,6 +954,11 @@
                       </p>
                     </div>
                     <div class="field">
+                      <label for="c-warp-mss" data-i18n="config.warp.mss">TCP MSS 上限</label>
+                      <input id="c-warp-mss" type="number" min="0" max="1460" step="1" />
+                      <p class="section-caption" data-i18n="config.warp.mss.hint">默认 0；Railway 等小路径 MTU 可尝试 1160。</p>
+                    </div>
+                    <div class="field">
                       <label for="c-warp-port" data-i18n="config.warp.port">WARP UDP 端口</label>
                       <input id="c-warp-port" type="number" min="0" max="65535" step="1" />
                       <p class="section-caption" data-i18n="config.warp.port.hint">默认 0：使用 Cloudflare 返回的端口（通常 2408）。</p>
