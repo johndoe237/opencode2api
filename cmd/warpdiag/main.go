@@ -22,17 +22,15 @@ import (
 var version = "dev"
 
 const caseTimeout = 8 * time.Second
-
-var ports = []int{2408, 500, 1701, 4500, 854, 864, 880, 894, 903, 934, 939, 942, 955, 968, 987, 1002, 1010, 1070, 1180, 3138, 4198}
+const diagnosticEndpointPort = 2408
 
 type result struct {
-	family, port, mtu  string
-	handshake          bool
-	elapsed            time.Duration
-	stats              warp.HandshakeStats
-	icmpSmall, icmpBig string
-	tcp, trace, down   string
-	err                string
+	internal, external, mtu, tcpMSS string
+	handshake                       bool
+	elapsed                         time.Duration
+	stats                           warp.HandshakeStats
+	tcp, trace, down                string
+	err                             string
 }
 
 func main() {
@@ -56,7 +54,7 @@ func main() {
 			fmt.Printf("config=ERROR %s\n", safeError(err))
 		} else {
 			cfg = loaded
-			fmt.Printf("config=loaded warp.stack=%s warp.mtu=%d endpoint_port=%d init_timeout_seconds=%d\n", cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.EndpointPort, cfg.Warp.InitTimeoutSeconds)
+			fmt.Printf("config=loaded warp.stack=%s warp.mtu=%d tcp_mss=%d endpoint_port=%d init_timeout_seconds=%d\n", cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.TCPMSS, cfg.Warp.EndpointPort, cfg.Warp.InitTimeoutSeconds)
 		}
 	} else {
 		_ = cfg.Warp.Normalize()
@@ -75,13 +73,9 @@ func main() {
 	fmt.Printf("registration=OK duration=%s endpoints=%s\n", time.Since(regStart).Round(time.Millisecond), endpointText(reg.DiagnosticEndpoints()))
 
 	families := []string{"ipv4", "ipv6"}
-	base := runMatrix(ctx, reg, cfg.Warp.Stack, []int{1200}, families, ports)
-	hits := successful(base)
-	if len(hits) > 0 {
-		base = append(base, runMatrix(ctx, reg, cfg.Warp.Stack, []int{1280, 1100}, families, hits)...)
-	}
+	base := runMatrix(ctx, reg, []string{"ipv4", "ipv6"}, families, []int{1280, 1200}, []int{0, 1160})
 	for _, r := range base {
-		fmt.Printf("case family=%s port=%s mtu=%s handshake=%s time=%s last_handshake_time_sec=%d tx_bytes=%d rx_bytes=%d icmp56=%s icmp1172=%s tcp=%s trace=%s download=%s%s\n", r.family, r.port, r.mtu, yesNo(r.handshake), r.elapsed.Round(time.Millisecond), r.stats.LastHandshakeSec, r.stats.TxBytes, r.stats.RxBytes, r.icmpSmall, r.icmpBig, r.tcp, r.trace, r.down, formatError(r.err))
+		fmt.Printf("case internal=%s external=%s mtu=%s tcp_mss=%s handshake=%s time=%s last_handshake_time_sec=%d tx_bytes=%d rx_bytes=%d tcp=%s trace=%s download=%s%s\n", r.internal, r.external, r.mtu, r.tcpMSS, yesNo(r.handshake), r.elapsed.Round(time.Millisecond), r.stats.LastHandshakeSec, r.stats.TxBytes, r.stats.RxBytes, r.tcp, r.trace, r.down, formatError(r.err))
 	}
 	if *configPath != "" {
 		printApplicationFlow(ctx, reg, cfg)
@@ -123,10 +117,10 @@ func compactInterfaces(raw string) string {
 	return strings.Join(values, ",")
 }
 
-func runMatrix(ctx context.Context, reg warp.DiagnosticRegistration, stack string, mtus []int, families []string, ports []int) []result {
+func runMatrix(ctx context.Context, reg warp.DiagnosticRegistration, internalFamilies, externalFamilies []string, mtus, msses []int) []result {
 	type job struct {
-		family    string
-		port, mtu int
+		internal, external string
+		mtu, tcpMSS        int
 	}
 	jobs := make(chan job)
 	out := make(chan result)
@@ -137,19 +131,21 @@ func runMatrix(ctx context.Context, reg warp.DiagnosticRegistration, stack strin
 		go func() {
 			defer wg.Done()
 			for j := range jobs {
-				out <- runCase(ctx, reg, stack, j.family, j.port, j.mtu)
+				out <- runCase(ctx, reg, j.internal, j.external, j.mtu, j.tcpMSS)
 			}
 		}()
 	}
 	go func() {
 		defer close(jobs)
 		for _, mtu := range mtus {
-			for _, family := range families {
-				for _, port := range ports {
-					select {
-					case jobs <- job{family: family, port: port, mtu: mtu}:
-					case <-ctx.Done():
-						return
+			for _, internal := range internalFamilies {
+				for _, external := range externalFamilies {
+					for _, tcpMSS := range msses {
+						select {
+						case jobs <- job{internal: internal, external: external, mtu: mtu, tcpMSS: tcpMSS}:
+						case <-ctx.Done():
+							return
+						}
 					}
 				}
 			}
@@ -161,17 +157,17 @@ func runMatrix(ctx context.Context, reg warp.DiagnosticRegistration, stack strin
 		resultList = append(resultList, r)
 	}
 	sort.Slice(resultList, func(i, j int) bool {
-		return resultList[i].family+resultList[i].port+resultList[i].mtu < resultList[j].family+resultList[j].port+resultList[j].mtu
+		return resultList[i].internal+resultList[i].external+resultList[i].mtu+resultList[i].tcpMSS < resultList[j].internal+resultList[j].external+resultList[j].mtu+resultList[j].tcpMSS
 	})
 	return resultList
 }
 
-func runCase(parent context.Context, reg warp.DiagnosticRegistration, stack, family string, port, mtu int) result {
-	r := result{family: family, port: fmt.Sprint(port), mtu: fmt.Sprint(mtu), icmpSmall: "-", icmpBig: "-", tcp: "-", trace: "-", down: "-"}
+func runCase(parent context.Context, reg warp.DiagnosticRegistration, internal, external string, mtu, tcpMSS int) result {
+	r := result{internal: internal, external: external, mtu: fmt.Sprint(mtu), tcpMSS: fmt.Sprint(tcpMSS), tcp: "-", trace: "-", down: "-"}
 	ctx, cancel := context.WithTimeout(parent, caseTimeout)
 	defer cancel()
 	start := time.Now()
-	tunnel, err := warp.NewDiagnosticTunnel(ctx, reg, warp.Stack(stackForFamily(stack, family)), mtu, port, family)
+	tunnel, err := warp.NewDiagnosticTunnel(ctx, reg, warp.Stack(internal), mtu, tcpMSS, diagnosticEndpointPort, external)
 	if err != nil {
 		r.elapsed = time.Since(start)
 		r.err = safeError(err)
@@ -185,31 +181,13 @@ func runCase(parent context.Context, reg warp.DiagnosticRegistration, stack, fam
 		return r
 	}
 	r.handshake = true
-	r.icmpSmall = checkPing(ctx, tunnel, family, 56)
-	r.icmpBig = checkPing(ctx, tunnel, family, 1172)
-	r.tcp = checkTCP(ctx, tunnel, family)
-	r.trace = checkTrace(ctx, tunnel, family)
+	r.tcp = checkTCP(ctx, tunnel, internal)
+	r.trace = checkTrace(ctx, tunnel, internal)
 	r.down = checkDownload(ctx, tunnel)
+	if stats, statsErr := tunnel.Stats(); statsErr == nil {
+		r.stats = stats
+	}
 	return r
-}
-
-func stackForFamily(stack, family string) string {
-	if stack == "dual" {
-		return family
-	}
-	return stack
-}
-
-func checkPing(ctx context.Context, tunnel *warp.DiagnosticTunnel, family string, size int) string {
-	address := "1.1.1.1"
-	if family == "ipv6" {
-		address = "2606:4700:4700::1111"
-	}
-	d, err := tunnel.Ping(ctx, address, size)
-	if err != nil {
-		return "N"
-	}
-	return d.Round(time.Millisecond).String()
 }
 
 func checkTCP(ctx context.Context, tunnel *warp.DiagnosticTunnel, family string) string {
@@ -240,23 +218,8 @@ func checkDownload(ctx context.Context, tunnel *warp.DiagnosticTunnel) string {
 	return fmt.Sprintf("%s/%d", d.Round(time.Millisecond), n)
 }
 
-func successful(results []result) []int {
-	seen := map[int]bool{}
-	var values []int
-	for _, r := range results {
-		if r.handshake {
-			var p int
-			fmt.Sscanf(r.port, "%d", &p)
-			if !seen[p] {
-				seen[p] = true
-				values = append(values, p)
-			}
-		}
-	}
-	return values
-}
-
 func printRawUDP(reg warp.DiagnosticRegistration) {
+	seenFamily := map[string]bool{}
 	for _, ep := range reg.DiagnosticEndpoints() {
 		if ep.IP == "<nil>" || ep.IP == "" {
 			continue
@@ -265,6 +228,14 @@ func printRawUDP(reg warp.DiagnosticRegistration) {
 		if err != nil {
 			continue
 		}
+		family := "ipv6"
+		if net.ParseIP(ep.IP).To4() != nil {
+			family = "ipv4"
+		}
+		if ep.Port != diagnosticEndpointPort || seenFamily[family] {
+			continue
+		}
+		seenFamily[family] = true
 		conn, err := net.DialUDP("udp", nil, addr)
 		if err != nil {
 			continue
@@ -286,7 +257,7 @@ func printApplicationFlow(ctx context.Context, reg warp.DiagnosticRegistration, 
 	}
 	caseCtx, cancel := context.WithTimeout(ctx, caseTimeout)
 	defer cancel()
-	duration, logs, err := warp.VerifyDiagnostic(caseCtx, reg, warp.Stack(family), cfg.Warp.MTU, cfg.Warp.EndpointPort, family)
+	duration, logs, err := warp.VerifyDiagnostic(caseCtx, reg, warp.Stack(family), cfg.Warp.MTU, cfg.Warp.TCPMSS, cfg.Warp.EndpointPort, family)
 	if err != nil {
 		fmt.Printf("application_flow=ERROR phase=construction_or_verification duration=%s error=%s wireguard_verbose=%s\n", duration.Round(time.Millisecond), safeError(err), safeText(logs))
 		return
@@ -300,7 +271,7 @@ func printVerdict(results []result, cfg config.Config) {
 	if best == nil {
 		return
 	}
-	fmt.Printf("RECOMMENDED CONFIG: {\"warp\":{\"enabled\":true,\"stack\":\"%s\",\"mtu\":%s,\"endpoint_port\":%s,\"init_timeout_seconds\":%d}}\n", best.family, best.mtu, best.port, cfg.Warp.InitTimeoutSeconds)
+	fmt.Printf("RECOMMENDED CONFIG: {\"warp\":{\"enabled\":true,\"stack\":\"%s\",\"mtu\":%s,\"tcp_mss\":%s,\"init_timeout_seconds\":%d}}\n", best.internal, best.mtu, best.tcpMSS, cfg.Warp.InitTimeoutSeconds)
 }
 
 func decideVerdict(results []result) (string, *result) {
@@ -314,12 +285,29 @@ func decideVerdict(results []result) (string, *result) {
 		return "no handshake observed in the tested endpoint/family/MTU matrix; distinguish silent UDP filtering from an endpoint-specific failure with raw_udp results", nil
 	}
 	best := handshakes[0]
-	for _, r := range handshakes {
-		if r.icmpBig == "N" || r.tcp == "N" || r.trace == "N" {
-			return fmt.Sprintf("handshake observed on family=%s port=%s mtu=%s but downstream checks fail; investigate PMTU or post-handshake filtering", r.family, r.port, r.mtu), &r
+	for _, r := range handshakes[1:] {
+		if resultScore(r) > resultScore(best) {
+			best = r
 		}
 	}
-	return fmt.Sprintf("handshake and downstream checks observed on family=%s port=%s mtu=%s", best.family, best.port, best.mtu), &best
+	return fmt.Sprintf("best internal=%s external=%s mtu=%s tcp_mss=%s score=%d; compared %d handshake cases", best.internal, best.external, best.mtu, best.tcpMSS, resultScore(best), len(handshakes)), &best
+}
+
+func resultScore(r result) int {
+	score := 1
+	if r.tcp != "N" && r.tcp != "-" {
+		score += 2
+	}
+	if strings.HasSuffix(r.trace, "/Y") {
+		score += 4
+	}
+	if !strings.HasPrefix(r.down, "N/") && r.down != "-" {
+		score += 4
+	}
+	if r.tcpMSS == "1160" {
+		score++
+	}
+	return score
 }
 
 func endpointText(endpoints []warp.EndpointInfo) string {

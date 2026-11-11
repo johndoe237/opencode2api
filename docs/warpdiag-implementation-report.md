@@ -10,13 +10,15 @@ Travail effectué sur `feat/warp-mtu` du fork `johndoe237/opencode2api`. Aucun c
 - Flags exacts : `-config <chemin>` facultatif et `-timeout <durée>` avec défaut `300s`.
 - Sortie bornée par `WARPDIAG REPORT BEGIN/END` et code de sortie 0 même en cas d’échec réseau.
 - Une seule inscription WARP réutilisée pour toute la matrice.
+- `warp.tcp_mss`, clamp optionnel des MSS TCP SYN/SYN-ACK dans les deux directions, avec recalcul des checksums IPv4/IPv6.
 - Collecte de l’environnement, des MTU d’interfaces, de l’en-tête `Date` Cloudflare et du délai historique de l’application.
-- Matrice initiale de tous les ports demandés avec MTU 1200 pour IPv4 et IPv6 ; MTU 1280/1100 ensuite sur les ports ayant établi un handshake.
+- Matrice courte de 16 cas : famille interne IPv4/IPv6 × famille endpoint externe IPv4/IPv6 × MTU 1280/1200 × MSS 0/1160, port 2408.
 - Construction WireGuard userspace + netstack réelle, métriques `IpcGet` (`last_handshake_time_sec`, `tx_bytes`, `rx_bytes`), ICMP 56/1172, TCP 443, GET Trace exact, téléchargement 300 Ko.
 - Contrôle UDP brut en tailles 148/512/1200/1280. Le support portable Go ne fournit pas `IP_RECVERR` directement ; le rapport l’indique plutôt que de prétendre distinguer les erreurs ICMP quand elles ne sont pas accessibles.
 - Étape `application_flow` utilisant le constructeur d’exit et le probe Trace exacts de l’application, avec la même inscription déjà créée, et capture des logs WireGuard verbose.
-- Verdict déterministe et configuration recommandée lorsqu’un cas fonctionne.
+- Verdict déterministe comparant les cas et configuration recommandée avec la meilleure combinaison interne/MTU/MSS.
 - Tests unitaires du parsing `IpcGet`, de l’arbre de décision, des ports et des options de configuration.
+- Tests unitaires du clamp IPv4/IPv6 sur SYN/SYN-ACK, option MSS absente ou déjà plus petite, MSS désactivé, paquets non-TCP/non-SYN inchangés et checksums valides.
 
 ## Options de correction
 
@@ -52,4 +54,4 @@ Docker, Railway et un endpoint WARP fonctionnel ne sont pas disponibles dans le 
 go run ./cmd/warpdiag -config config.json -timeout 300s
 ```
 
-Le rapport produit par cette commande est le livrable décisif à copier après le déploiement.
+Le rapport produit par cette commande est le livrable décisif à copier après le déploiement. Pour Railway, la configuration attendue à essayer en premier est `stack=ipv6`, `mtu=1280`, `tcp_mss=1160` ; cette combinaison n’a pas été validée dans le sandbox sans accès réseau WARP fonctionnel.
