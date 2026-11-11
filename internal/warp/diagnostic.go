@@ -9,7 +9,10 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.zx2c4.com/wireguard/device"
 )
 
 // DiagnosticRegistration is an opaque, single-use WARP registration returned
@@ -80,20 +83,34 @@ func NewDiagnosticTunnel(ctx context.Context, registration DiagnosticRegistratio
 
 // VerifyDiagnostic executes the same exit construction and Cloudflare Trace
 // probe used by the application while reusing the supplied single account.
-func VerifyDiagnostic(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, endpointPort int, family string) (time.Duration, error) {
+func VerifyDiagnostic(ctx context.Context, registration DiagnosticRegistration, stack Stack, mtu, endpointPort int, family string) (time.Duration, string, error) {
 	start := time.Now()
+	var logMu sync.Mutex
+	var logs []string
+	logger := &device.Logger{
+		Verbosef: func(format string, args ...any) {
+			logMu.Lock()
+			logs = append(logs, fmt.Sprintf(format, args...))
+			logMu.Unlock()
+		},
+		Errorf: func(format string, args ...any) {
+			logMu.Lock()
+			logs = append(logs, fmt.Sprintf(format, args...))
+			logMu.Unlock()
+		},
+	}
 	reg := registration.registration
 	reg.Endpoints = filterEndpointFamily(reg.Endpoints, family)
 	if len(reg.Endpoints) == 0 {
-		return time.Since(start), fmt.Errorf("no %s endpoint in registration", family)
+		return time.Since(start), strings.Join(logs, " | "), fmt.Errorf("no %s endpoint in registration", family)
 	}
 	reg.Endpoint = reg.Endpoints[0]
-	e, err := newExitWithStackAndOptions(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, true)
+	e, err := newExitWithStackAndLogger(ctx, reg, stack, netip.Addr{}, mtu, endpointPort, true, logger)
 	if err != nil {
-		return time.Since(start), err
+		return time.Since(start), strings.Join(logs, " | "), err
 	}
 	e.close()
-	return time.Since(start), nil
+	return time.Since(start), strings.Join(logs, " | "), nil
 }
 
 func filterEndpointFamily(endpoints []string, family string) []string {

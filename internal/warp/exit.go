@@ -91,6 +91,10 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 }
 
 func newExitWithStackAndOptions(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort int, verify bool) (*exit, error) {
+	return newExitWithStackAndLogger(ctx, reg, stack, source, mtu, endpointPort, verify, nil)
+}
+
+func newExitWithStackAndLogger(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort int, verify bool, logger *device.Logger) (*exit, error) {
 	normalized, err := ParseStack(string(stack))
 	if err != nil {
 		return nil, err
@@ -165,7 +169,10 @@ func newExitWithStackAndOptions(ctx context.Context, reg registration, stack Sta
 		// shared address the prefix was supposed to avoid.
 		endpoints = preferIPv6Endpoints(endpoints)
 	}
-	wg := device.NewDevice(tunDevice, &simpleBind{source: source}, device.NewLogger(device.LogLevelError, "warp: "))
+	if logger == nil {
+		logger = device.NewLogger(device.LogLevelError, "warp: ")
+	}
+	wg := device.NewDevice(tunDevice, &simpleBind{source: source}, logger)
 	uapi := fmt.Sprintf(
 		"private_key=%s\npublic_key=%s\nallowed_ip=0.0.0.0/0\nallowed_ip=::/0\nendpoint=%s\npersistent_keepalive_interval=25\n",
 		privateKey, peerKey, endpoints[0],

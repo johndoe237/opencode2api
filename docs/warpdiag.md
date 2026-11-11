@@ -22,6 +22,8 @@ L’outil affiche l’environnement, le délai d’initialisation historique du 
 
 Pour chaque tunnel, `IpcGet` est interrogé jusqu’au premier `last_handshake_time_sec`. Les tests suivants utilisent la même netstack : ICMP avec petites et grandes charges, TCP vers Cloudflare, le GET `/cdn-cgi/trace` exact de l’application et un téléchargement de 300 Ko. Des envois UDP bruts de 148, 512, 1200 et 1280 octets sont aussi affichés pour les endpoints résolus.
 
+Avec `-config`, `application_flow` reconstruit le chemin d’exit et le probe exacts de l’application, en réutilisant l’inscription unique, et capture les logs WireGuard verbose dans la ligne de rapport correspondante.
+
 Les erreurs réseau sont abrégées et les clés WireGuard ne sont jamais imprimées. La couche portable `net.UDPConn` ne fournit pas directement une file `IP_RECVERR`; la section `raw_udp` indique donc les erreurs d’écriture observées et précise cette limite. Les ports forcés sont appliqués par `warp.endpoint_port` dans l’application et par le paramètre de chaque cas dans le diagnostic.
 
 ## Options de correction

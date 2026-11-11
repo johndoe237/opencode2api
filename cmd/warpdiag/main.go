@@ -286,12 +286,12 @@ func printApplicationFlow(ctx context.Context, reg warp.DiagnosticRegistration, 
 	}
 	caseCtx, cancel := context.WithTimeout(ctx, caseTimeout)
 	defer cancel()
-	duration, err := warp.VerifyDiagnostic(caseCtx, reg, warp.Stack(family), cfg.Warp.MTU, cfg.Warp.EndpointPort, family)
+	duration, logs, err := warp.VerifyDiagnostic(caseCtx, reg, warp.Stack(family), cfg.Warp.MTU, cfg.Warp.EndpointPort, family)
 	if err != nil {
-		fmt.Printf("application_flow=ERROR phase=construction_or_verification duration=%s error=%s\n", duration.Round(time.Millisecond), safeError(err))
+		fmt.Printf("application_flow=ERROR phase=construction_or_verification duration=%s error=%s wireguard_verbose=%s\n", duration.Round(time.Millisecond), safeError(err), safeText(logs))
 		return
 	}
-	fmt.Printf("application_flow=OK phase=verification duration=%s note=exact_exit_probe_reusing_single_registration\n", duration.Round(time.Millisecond))
+	fmt.Printf("application_flow=OK phase=verification duration=%s wireguard_verbose=%s note=exact_exit_probe_reusing_single_registration\n", duration.Round(time.Millisecond), safeText(logs))
 }
 
 func printVerdict(results []result, cfg config.Config) {
@@ -331,6 +331,9 @@ func endpointText(endpoints []warp.EndpointInfo) string {
 }
 func safeError(err error) string {
 	return strings.NewReplacer("\n", " ", "\r", " ").Replace(err.Error())
+}
+func safeText(value string) string {
+	return strings.NewReplacer("\n", " ", "\r", " ", "=", ":").Replace(value)
 }
 func formatError(err string) string {
 	if err == "" {

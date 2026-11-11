@@ -14,7 +14,7 @@ Travail effectué sur `feat/warp-mtu` du fork `johndoe237/opencode2api`. Aucun c
 - Matrice initiale de tous les ports demandés avec MTU 1200 pour IPv4 et IPv6 ; MTU 1280/1100 ensuite sur les ports ayant établi un handshake.
 - Construction WireGuard userspace + netstack réelle, métriques `IpcGet` (`last_handshake_time_sec`, `tx_bytes`, `rx_bytes`), ICMP 56/1172, TCP 443, GET Trace exact, téléchargement 300 Ko.
 - Contrôle UDP brut en tailles 148/512/1200/1280. Le support portable Go ne fournit pas `IP_RECVERR` directement ; le rapport l’indique plutôt que de prétendre distinguer les erreurs ICMP quand elles ne sont pas accessibles.
-- Étape `application_flow` utilisant le constructeur d’exit et le probe Trace exacts de l’application, avec la même inscription déjà créée.
+- Étape `application_flow` utilisant le constructeur d’exit et le probe Trace exacts de l’application, avec la même inscription déjà créée, et capture des logs WireGuard verbose.
 - Verdict déterministe et configuration recommandée lorsqu’un cas fonctionne.
 - Tests unitaires du parsing `IpcGet`, de l’arbre de décision, des ports et des options de configuration.
 
