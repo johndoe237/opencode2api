@@ -306,6 +306,8 @@ See [config.example.json](config.example.json) for a complete starting configura
 | `warp.pool_size`            | `2`; upper bound on WARP exits (half pre-registered in the background; the active ring follows concurrency), 1–32. |
 | `warp.stack`                | `ipv6`; `ipv6`, `ipv4`, or `dual`.                                          |
 | `warp.mtu`                  | `1280`; tunnel MTU, valid range 1000–1420. Try `1200` on reduced-path-MTU networks such as Railway; lower values add overhead and can reduce throughput. |
+| `warp.endpoint_port`        | `0`; keep the endpoint port returned by Cloudflare (normally 2408), or force a UDP port from 1–65535. |
+| `warp.init_timeout_seconds` | `0`; preserve the historical registration-window timeout, or set an explicit initialization timeout up to 900 seconds. |
 | `warp.source_ipv6`          | empty; IPv6 prefix (`/64`) each exit binds its outer source from; requires `stack = "ipv6"`. |
 | `prefer`                    | `go`; accepts `go` or `zen`.                                                |
 | `upstream.zen`              | `https://opencode.ai/zen`.                                                  |
@@ -586,4 +588,3 @@ Observations are persisted by upstream URL, model and native protocol, displayed
 SPDX-License-Identifier: GPL-3.0-or-later
 
 This project is free software: you may redistribute and modify it under the GNU General Public License as published by the Free Software Foundation, either version 3 or (at your option) any later version. It is distributed without any warranty. See [LICENSE](LICENSE) for the full terms.
-

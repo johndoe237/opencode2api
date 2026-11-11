@@ -87,6 +87,8 @@ function fillConfig(value) {
   $("#c-warp-pool").value = warp.pool_size || 2;
   $("#c-warp-stack").value = warp.stack || "ipv6";
   $("#c-warp-mtu").value = warp.mtu || 1280;
+  $("#c-warp-port").value = warp.endpoint_port || 0;
+  $("#c-warp-timeout").value = warp.init_timeout_seconds || 0;
   $("#c-warp-source").value = warp.source_ipv6 || "";
   $("#c-proxyfile").value = value.proxyfile;
   $("#c-up-zen").value = value.upstream.zen;
@@ -131,6 +133,8 @@ async function save(event) {
         pool_size: numberValue("#c-warp-pool"),
         stack: $("#c-warp-stack").value,
         mtu: numberValue("#c-warp-mtu"),
+        endpoint_port: numberValue("#c-warp-port"),
+        init_timeout_seconds: numberValue("#c-warp-timeout"),
         source_ipv6: $("#c-warp-source").value.trim(),
       },
       proxies: secretInputs("proxies"),

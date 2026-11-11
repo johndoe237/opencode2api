@@ -28,6 +28,24 @@ func TestWarpConfigNormalizeValidMTU(t *testing.T) {
 	}
 }
 
+func TestWarpConfigNormalizeDiagnosticOptions(t *testing.T) {
+	cfg := WarpConfig{EndpointPort: 500, InitTimeoutSeconds: 45}
+	if err := cfg.Normalize(); err != nil {
+		t.Fatalf("Normalize() error = %v", err)
+	}
+	if cfg.EndpointPort != 500 || cfg.InitTimeoutSeconds != 45 {
+		t.Fatalf("diagnostic options changed: port=%d timeout=%d", cfg.EndpointPort, cfg.InitTimeoutSeconds)
+	}
+}
+
+func TestWarpConfigNormalizeRejectsInvalidDiagnosticOptions(t *testing.T) {
+	for _, cfg := range []WarpConfig{{EndpointPort: -1}, {EndpointPort: 65536}, {InitTimeoutSeconds: -1}, {InitTimeoutSeconds: 901}} {
+		if err := cfg.Normalize(); err == nil {
+			t.Fatalf("Normalize() accepted invalid diagnostic options: %+v", cfg)
+		}
+	}
+}
+
 func TestWarpConfigNormalizeRejectsMTUOutsideBounds(t *testing.T) {
 	for _, mtu := range []int{warp.MinMTU - 1, warp.MaxMTU + 1} {
 		t.Run(string(rune(mtu)), func(t *testing.T) {

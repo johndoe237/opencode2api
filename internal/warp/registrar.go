@@ -35,6 +35,10 @@ const (
 // full window rather than failing on a pause that is about to end.
 const RegistrationWindow = maxRateLimitPause
 
+// HistoricalInitTimeout is the effective default runtime timeout after the
+// registration window safeguard is applied.
+const HistoricalInitTimeout = RegistrationWindow + 30*time.Second
+
 // registrationPausedError reports that Cloudflare asked for a pause before
 // the next device registration. The pool schedules its retry from it instead
 // of sleeping inside the registration path.

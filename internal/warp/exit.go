@@ -79,7 +79,7 @@ type exit struct {
 }
 
 func newExit(ctx context.Context, reg registration) (*exit, error) {
-	return newExitWithStack(ctx, reg, DefaultStack, netip.Addr{}, DefaultMTU)
+	return newExitWithStackAndOptions(ctx, reg, DefaultStack, netip.Addr{}, DefaultMTU, 0, true)
 }
 
 // newExitWithStack builds one userspace tunnel for reg. A valid source pins
@@ -87,6 +87,10 @@ func newExit(ctx context.Context, reg registration) (*exit, error) {
 // to IPv6, so the public egress is derived from the rotating source rather than
 // from whatever address the host happens to share.
 func newExitWithStack(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu int) (*exit, error) {
+	return newExitWithStackAndOptions(ctx, reg, stack, source, mtu, 0, true)
+}
+
+func newExitWithStackAndOptions(ctx context.Context, reg registration, stack Stack, source netip.Addr, mtu, endpointPort int, verify bool) (*exit, error) {
 	normalized, err := ParseStack(string(stack))
 	if err != nil {
 		return nil, err
@@ -96,6 +100,9 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 	}
 	if mtu < MinMTU || mtu > MaxMTU {
 		return nil, fmt.Errorf("WARP tunnel MTU must be between %d and %d, got %d", MinMTU, MaxMTU, mtu)
+	}
+	if endpointPort < 0 || endpointPort > 65535 {
+		return nil, fmt.Errorf("WARP endpoint port must be between 0 and 65535, got %d", endpointPort)
 	}
 	stack = normalized
 	localV6, v6Err := parseAddress(reg.AddressV6)
@@ -141,7 +148,12 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 		tunDevice.Close()
 		return nil, fmt.Errorf("decode WARP peer key: %w", err)
 	}
-	endpoints, err := resolveEndpoints(ctx, reg.Endpoints, reg.Endpoint)
+	candidates, fallback := reg.Endpoints, reg.Endpoint
+	if endpointPort != 0 {
+		candidates = forceEndpointPort(candidates, endpointPort)
+		fallback = replaceEndpointPort(fallback, endpointPort)
+	}
+	endpoints, err := resolveEndpoints(ctx, candidates, fallback)
 	if err != nil {
 		tunDevice.Close()
 		return nil, err
@@ -169,6 +181,9 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 		return nil, fmt.Errorf("start WARP device: %w", err)
 	}
 	e := &exit{id: reg.ID, stack: stack, mtu: mtu, device: wg, network: network}
+	if !verify {
+		return e, nil
+	}
 	egress, err := e.probe(ctx, wg, peerKey, endpoints)
 	if err != nil {
 		e.close()
@@ -176,6 +191,14 @@ func newExitWithStack(ctx context.Context, reg registration, stack Stack, source
 	}
 	e.egress = egress
 	return e, nil
+}
+
+func forceEndpointPort(endpoints []string, port int) []string {
+	result := make([]string, 0, len(endpoints))
+	for _, endpoint := range endpoints {
+		result = append(result, replaceEndpointPort(endpoint, port))
+	}
+	return result
 }
 
 // preferIPv6Endpoints returns endpoints with the IPv6 ones first and the IPv4

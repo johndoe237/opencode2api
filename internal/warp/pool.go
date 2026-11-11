@@ -144,6 +144,9 @@ type Options struct {
 	Stack Stack
 	// MTU is the userspace tunnel MTU. Zero selects DefaultMTU.
 	MTU int
+	// EndpointPort overrides the port on every resolved endpoint. Zero keeps
+	// the endpoint ports returned by Cloudflare and the existing fallbacks.
+	EndpointPort int
 	// SourceIPv6, when valid, is the outer IPv6 prefix each exit binds its
 	// WireGuard socket to. Every exit draws its own address from it, so a
 	// replacement reaches Cloudflare from a new source and receives a new
@@ -167,6 +170,9 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 	if opts.MTU < MinMTU || opts.MTU > MaxMTU {
 		return nil, fmt.Errorf("WARP tunnel MTU must be between %d and %d, got %d", MinMTU, MaxMTU, opts.MTU)
 	}
+	if opts.EndpointPort < 0 || opts.EndpointPort > 65535 {
+		return nil, fmt.Errorf("WARP endpoint port must be between 0 and 65535, got %d", opts.EndpointPort)
+	}
 	size := opts.Size
 	if size <= 0 {
 		size = DefaultPoolSize
@@ -184,7 +190,7 @@ func NewWithOptions(ctx context.Context, log *slog.Logger, opts Options) (*Pool,
 				return nil, err
 			}
 		}
-		return newExitWithStack(ctx, reg, normalized, source, opts.MTU)
+		return newExitWithStackAndOptions(ctx, reg, normalized, source, opts.MTU, opts.EndpointPort, true)
 	})
 	if err != nil {
 		return nil, err

@@ -953,6 +953,16 @@
                         默认 1280；Railway 等路径 MTU 较小的网络可尝试 1200。
                       </p>
                     </div>
+                    <div class="field">
+                      <label for="c-warp-port" data-i18n="config.warp.port">WARP UDP 端口</label>
+                      <input id="c-warp-port" type="number" min="0" max="65535" step="1" />
+                      <p class="section-caption" data-i18n="config.warp.port.hint">默认 0：使用 Cloudflare 返回的端口（通常 2408）。</p>
+                    </div>
+                    <div class="field">
+                      <label for="c-warp-timeout" data-i18n="config.warp.timeout">WARP 初始化超时（秒）</label>
+                      <input id="c-warp-timeout" type="number" min="0" max="900" step="1" />
+                      <p class="section-caption" data-i18n="config.warp.timeout.hint">默认 0：保持历史的注册窗口超时策略。</p>
+                    </div>
                     <div class="field full">
                       <label for="c-warp-source" data-i18n="config.warp.source">外层 IPv6 源前缀（/64）</label>
                       <input id="c-warp-source" placeholder="2001:db8:1::/64" />

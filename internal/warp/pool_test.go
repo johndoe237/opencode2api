@@ -13,3 +13,12 @@ func TestNewWithOptionsRejectsInvalidMTUBeforeRegistration(t *testing.T) {
 		}
 	}
 }
+
+func TestNewWithOptionsRejectsInvalidEndpointPortBeforeRegistration(t *testing.T) {
+	for _, port := range []int{-1, 65536} {
+		_, err := NewWithOptions(context.Background(), nil, Options{EndpointPort: port})
+		if err == nil {
+			t.Fatalf("NewWithOptions() accepted endpoint port %d", port)
+		}
+	}
+}

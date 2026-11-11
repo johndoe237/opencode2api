@@ -80,6 +80,12 @@ type WarpConfig struct {
 	// MTU is the userspace tunnel MTU. Zero keeps the historical 1280-byte
 	// default, so configurations written before this field remain unchanged.
 	MTU int `json:"mtu,omitempty"`
+	// EndpointPort overrides the UDP port of resolved WARP endpoints. Zero
+	// preserves the endpoint port selected by Cloudflare (normally 2408).
+	EndpointPort int `json:"endpoint_port,omitempty"`
+	// InitTimeoutSeconds bounds WARP initialization. Zero preserves the
+	// historical registration-window-derived timeout.
+	InitTimeoutSeconds int `json:"init_timeout_seconds,omitempty"`
 	// SourceIPv6 is an outer IPv6 prefix (usually a routed /64) each WARP exit
 	// binds its WireGuard socket to. Rotating the source is what gives a
 	// replacement exit a new public egress; without it, exits share one
@@ -97,6 +103,12 @@ func (w *WarpConfig) Normalize() error {
 	}
 	if w.MTU < warp.MinMTU || w.MTU > warp.MaxMTU {
 		return fmt.Errorf("warp.mtu must be between %d and %d", warp.MinMTU, warp.MaxMTU)
+	}
+	if w.EndpointPort < 0 || w.EndpointPort > 65535 {
+		return errors.New("warp.endpoint_port must be between 0 and 65535")
+	}
+	if w.InitTimeoutSeconds < 0 || w.InitTimeoutSeconds > 900 {
+		return errors.New("warp.init_timeout_seconds must be between 0 and 900")
 	}
 	if strings.TrimSpace(w.Stack) == "" {
 		w.Stack = string(warp.DefaultStack)

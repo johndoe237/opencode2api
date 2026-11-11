@@ -228,7 +228,7 @@ func (m *RuntimeController) selectWARP(cfg config.Config) (*warp.Pool, string, b
 	if !cfg.Warp.Enabled {
 		return nil, "", false, nil
 	}
-	key := fmt.Sprintf("%d|%s|%d|%s", cfg.Warp.PoolSize, cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.SourceIPv6)
+	key := fmt.Sprintf("%d|%s|%d|%d|%d|%s", cfg.Warp.PoolSize, cfg.Warp.Stack, cfg.Warp.MTU, cfg.Warp.EndpointPort, cfg.Warp.InitTimeoutSeconds, cfg.Warp.SourceIPv6)
 	if m.warpPool != nil && m.warpKey == key {
 		return m.warpPool, key, false, nil
 	}
@@ -240,20 +240,23 @@ func (m *RuntimeController) selectWARP(cfg config.Config) (*warp.Pool, string, b
 		}
 		source = prefix.Masked()
 	}
-	timeout := time.Duration(cfg.Retry.TimeoutSeconds) * time.Second
-	if timeout <= 0 || timeout > 2*time.Minute {
-		timeout = 2 * time.Minute
+	timeout := time.Duration(cfg.Warp.InitTimeoutSeconds) * time.Second
+	if timeout == 0 {
+		timeout = time.Duration(cfg.Retry.TimeoutSeconds) * time.Second
+		if timeout <= 0 || timeout > 2*time.Minute {
+			timeout = 2 * time.Minute
+		}
 	}
 	// The first registration is synchronous: it decides whether the runtime can
 	// serve free traffic at all. Cloudflare can answer it with a rate limit even
 	// on a fresh process, so give initialization room for one full window
 	// instead of failing startup on a pause that is about to end.
-	if timeout < warp.RegistrationWindow+30*time.Second {
+	if cfg.Warp.InitTimeoutSeconds == 0 && timeout < warp.RegistrationWindow+30*time.Second {
 		timeout = warp.RegistrationWindow + 30*time.Second
 	}
 	ctx, cancel := context.WithTimeout(m.root, timeout)
 	defer cancel()
-	pool, err := warp.NewWithOptions(ctx, m.logger, warp.Options{Size: cfg.Warp.PoolSize, Stack: warp.Stack(cfg.Warp.Stack), MTU: cfg.Warp.MTU, SourceIPv6: source})
+	pool, err := warp.NewWithOptions(ctx, m.logger, warp.Options{Size: cfg.Warp.PoolSize, Stack: warp.Stack(cfg.Warp.Stack), MTU: cfg.Warp.MTU, EndpointPort: cfg.Warp.EndpointPort, SourceIPv6: source})
 	if err != nil {
 		return nil, "", false, fmt.Errorf("initialize WARP egress: %w", err)
 	}

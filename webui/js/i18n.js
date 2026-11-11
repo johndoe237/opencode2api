@@ -284,6 +284,10 @@ const DICTIONARY = {
       "config.warp.stack.dual": "Dual stack",
       "config.warp.mtu": "WARP tunnel MTU",
       "config.warp.mtu.hint": "Default 1280. Try 1200 on reduced-path-MTU networks such as Railway; valid range: 1000–1420.",
+      "config.warp.port": "WARP UDP endpoint port",
+      "config.warp.port.hint": "0 uses the port returned by Cloudflare (normally 2408).",
+      "config.warp.timeout": "WARP initialization timeout (seconds)",
+      "config.warp.timeout.hint": "0 preserves the historical registration-window timeout strategy.",
       "config.warp.source": "Outer IPv6 source prefix (/64)",
       "config.warp.source.hint":
         "Used only with the IPv6 network stack. Every WARP exit binds one source address from this prefix, so replacing an exit also replaces its public egress; leave empty to share this host's default source address.",
@@ -863,6 +867,10 @@ const DICTIONARY = {
       "config.warp.stack.dual": "Hai ngăn xếp",
       "config.warp.mtu": "MTU đường hầm WARP",
       "config.warp.mtu.hint": "Mặc định 1280. Thử 1200 trên mạng có MTU đường đi nhỏ như Railway; phạm vi hợp lệ: 1000–1420.",
+      "config.warp.port": "Cổng UDP endpoint WARP",
+      "config.warp.port.hint": "0 dùng cổng Cloudflare trả về (thường là 2408).",
+      "config.warp.timeout": "Thời gian chờ khởi tạo WARP (giây)",
+      "config.warp.timeout.hint": "0 giữ chiến lược thời gian chờ theo cửa sổ đăng ký cũ.",
       "config.warp.source": "Tiền tố nguồn IPv6 bên ngoài (/64)",
       "config.warp.source.hint":
         "Chỉ dùng với ngăn xếp mạng IPv6. Mỗi đầu ra WARP gắn một địa chỉ nguồn trong tiền tố này, nên khi thay đầu ra là thay luôn địa chỉ công cộng; để trống sẽ dùng địa chỉ nguồn mặc định của máy chủ.",
@@ -1453,6 +1461,10 @@ const DICTIONARY = {
       "config.warp.stack.dual": "Doppio stack",
       "config.warp.mtu": "MTU del tunnel WARP",
       "config.warp.mtu.hint": "Predefinito 1280. Prova 1200 su reti con MTU di percorso ridotto come Railway; intervallo valido: 1000–1420.",
+      "config.warp.port": "Porta UDP endpoint WARP",
+      "config.warp.port.hint": "0 usa la porta restituita da Cloudflare (di solito 2408).",
+      "config.warp.timeout": "Timeout di inizializzazione WARP (secondi)",
+      "config.warp.timeout.hint": "0 conserva la strategia storica basata sulla finestra di registrazione.",
       "config.warp.source": "Prefisso sorgente IPv6 esterno (/64)",
       "config.warp.source.hint":
         "Usato solo con lo stack IPv6. Ogni uscita WARP associa un indirizzo sorgente da questo prefisso, quindi sostituire un'uscita sostituisce anche l'indirizzo pubblico; lascia vuoto per usare l'indirizzo sorgente predefinito dell'host.",
